@@ -1,0 +1,31 @@
+services:
+  server:
+    container_name: medway-api
+    build:
+      context: .
+    restart: always
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=medway_api.settings
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=teste
+      - POSTGRES_PASSWORD=teste
+      - POSTGRES_DB=teste
+    depends_on:
+      - db
+    volumes:
+      - ./app:/django/app
+    ports:
+      - "8000:8000"
+    entrypoint:
+      - /entrypoint.sh
+
+  db:
+    restart: always
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=teste
+      - POSTGRES_PASSWORD=teste
+      - POSTGRES_DB=teste
+    ports:
+      - "5432:5432"

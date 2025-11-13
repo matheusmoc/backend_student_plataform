@@ -144,29 +144,6 @@ python -m pytest test_api_integration.py::TestExamSubmissionAPI::test_submit_exa
 python -m pytest test_exam_functionality.py --durations=10
 ```
 
-## 📝 Adicionando Novos Testes
-
-Para adicionar novos testes:
-
-1. **Testes de Modelo**: Adicione em `TestModelFunctionality`
-2. **Testes de API**: Adicione em `TestExamSubmissionAPI` ou `TestExamResultsAPI`
-3. **Testes de Integração**: Adicione em `TestCompleteWorkflow`
-
-Exemplo de novo teste:
-```python
-@pytest.mark.django_db
-def test_novo_cenario(self):
-    """Teste de novo cenário"""
-    # Setup
-    # ...
-    
-    # Ação
-    # ...
-    
-    # Verificação
-    assert resultado_esperado == resultado_obtido
-```
-
 ## 🔄 Execução Contínua
 
 Para desenvolvimento ativo, use:

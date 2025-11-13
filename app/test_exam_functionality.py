@@ -45,13 +45,10 @@ class TestImports:
     
     def test_view_imports(self):
         """Test view imports"""
-        from exam.views import submit_exam, exam_results, student_exam_results
-        
-        assert submit_exam is not None
-        assert exam_results is not None
-        assert student_exam_results is not None
+        from exam.views import ExamViewSet, ExamSubmissionViewSet
 
-
+        assert ExamViewSet is not None
+        assert ExamSubmissionViewSet is not None
 class TestModelStructure:
     """Test model structure and relationships"""
     
@@ -81,7 +78,6 @@ class TestModelStructure:
     
     def test_model_properties(self):
         """Test model properties exist"""
-        # Test that properties exist (without calling them to avoid DB errors)
         assert hasattr(ExamSubmission, 'score')
         assert hasattr(ExamSubmission, 'correct_answers_count')
         assert hasattr(SubmissionAnswer, 'is_correct')
@@ -123,32 +119,33 @@ class TestURLConfiguration:
     def test_url_patterns(self):
         """Test specific URL patterns"""
         import exam.urls
-        
-        pattern_names = [pattern.name for pattern in exam.urls.urlpatterns if hasattr(pattern, 'name')]
-        expected_patterns = ['submit_exam', 'exam_results', 'student_exam_results']
-        
-        for pattern in expected_patterns:
-            assert pattern in pattern_names, f"Missing URL pattern: {pattern}"
 
-
+        # Com ViewSets, os padrões são criados automaticamente pelo router
+        # Verificamos se pelo menos os padrões básicos existem
+        from django.urls import reverse
+        
+        # Testa se as URLs dos ViewSets existem
+        try:
+            reverse('exam-list')  
+            reverse('examsubmission-list') 
+            assert True
+        except:
+            assert False, "ViewSet URLs not properly configured"
 @pytest.mark.django_db
 class TestModelFunctionality(TestCase):
     """Test model functionality with database"""
     
     def setUp(self):
         """Set up test data"""
-        # Create a student
         self.student = Student.objects.create(
             username='teststudent',
             email='test@example.com',
             name='Test Student'
         )
         
-        # Create questions
         self.question1 = Question.objects.create(content='Test question 1?')
         self.question2 = Question.objects.create(content='Test question 2?')
         
-        # Create alternatives
         Alternative.objects.create(
             question=self.question1, content='Option A', option=1, is_correct=False
         )
@@ -196,8 +193,8 @@ class TestModelFunctionality(TestCase):
         assert answer.submission == submission
         assert answer.question == self.question1
         assert answer.selected_alternative_option == 2
-        assert answer.is_correct == True  # Option 2 is correct for question1
-    
+        assert answer.is_correct == True
+
     def test_submission_score_calculation(self):
         """Test score calculation"""
         submission = ExamSubmission.objects.create(
@@ -205,19 +202,18 @@ class TestModelFunctionality(TestCase):
             exam=self.exam
         )
         
-        # Create answers - 1 correct, 1 incorrect
         SubmissionAnswer.objects.create(
             submission=submission,
             question=self.question1,
-            selected_alternative_option=2  # Correct
+            selected_alternative_option=2
         )
         SubmissionAnswer.objects.create(
             submission=submission,
             question=self.question2,
-            selected_alternative_option=2  # Incorrect (correct is 1)
+            selected_alternative_option=2
         )
         
-        assert submission.score == 50.0  # 1 out of 2 correct = 50%
+        assert submission.score == 50.0 
         assert submission.correct_answers_count == 1
     
     def test_unique_constraint_student_exam(self):
@@ -241,23 +237,19 @@ class TestSerializerValidation:
         """Test AnswerSubmissionSerializer validation"""
         from exam.serializers import AnswerSubmissionSerializer
         
-        # Valid data
         valid_data = {'question_id': 1, 'selected_option': 3}
         serializer = AnswerSubmissionSerializer(data=valid_data)
         assert serializer.is_valid()
         
-        # Invalid option (too high)
         invalid_data = {'question_id': 1, 'selected_option': 6}
         serializer = AnswerSubmissionSerializer(data=invalid_data)
         assert not serializer.is_valid()
         
-        # Invalid option (too low)
         invalid_data = {'question_id': 1, 'selected_option': 0}
         serializer = AnswerSubmissionSerializer(data=invalid_data)
         assert not serializer.is_valid()
 
 
-# Test runner function for backwards compatibility
 def run_pytest_tests():
     """Run all pytest tests"""
     import subprocess

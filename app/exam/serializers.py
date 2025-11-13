@@ -1,8 +1,62 @@
 from rest_framework import serializers
 from django.db import transaction
-from .models import Exam, ExamSubmission, SubmissionAnswer
+from .models import Exam, ExamSubmission, SubmissionAnswer, ExamQuestion
 from question.models import Question, Alternative
 from student.models import Student
+
+
+class QuestionSimpleSerializer(serializers.ModelSerializer):
+    """Serializer simples para questões em listagens"""
+    
+    class Meta:
+        model = Question
+        fields = ['id', 'content']
+
+
+class ExamQuestionSerializer(serializers.ModelSerializer):
+    """Serializer para relação Exam-Question"""
+    question = QuestionSimpleSerializer(read_only=True)
+    
+    class Meta:
+        model = ExamQuestion
+        fields = ['number', 'question']
+
+
+class ExamSerializer(serializers.ModelSerializer):
+    """Serializer básico para Exam"""
+    total_questions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Exam
+        fields = ['id', 'name', 'total_questions']
+    
+    def get_total_questions(self, obj):
+        """Conta o total de questões do exame"""
+        return obj.examquestion_set.count()
+
+
+class ExamDetailSerializer(serializers.ModelSerializer):
+    """Serializer detalhado para Exam com questões"""
+    questions = serializers.SerializerMethodField()
+    total_questions = serializers.SerializerMethodField()
+    total_submissions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Exam
+        fields = ['id', 'name', 'questions', 'total_questions', 'total_submissions']
+    
+    def get_questions(self, obj):
+        """Retorna questões ordenadas por número"""
+        exam_questions = obj.examquestion_set.select_related('question').order_by('number')
+        return ExamQuestionSerializer(exam_questions, many=True).data
+    
+    def get_total_questions(self, obj):
+        """Conta o total de questões do exame"""
+        return obj.examquestion_set.count()
+    
+    def get_total_submissions(self, obj):
+        """Conta o total de submissões do exame"""
+        return obj.examsubmission_set.count()
 
 
 class AnswerSubmissionSerializer(serializers.Serializer):

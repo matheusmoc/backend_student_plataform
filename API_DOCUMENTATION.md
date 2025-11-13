@@ -1,38 +1,38 @@
-# Exam Submission API Documentation
+# Documentação da API de Submissão de Exames
 
-This document explains how to use the exam submission and results functionality.
+Este documento explica como usar as funcionalidades de submissão de exames e visualização de resultados.
 
-## Overview
+## Visão Geral
 
-The system provides two main features:
-1. **Submit Exam Answers**: Students can submit all their answers for an exam at once
-2. **View Results**: Students can view their detailed results including correct/incorrect answers and score percentage
+O sistema fornece duas funcionalidades principais:
+1. **Submeter Respostas do Exame**: Estudantes podem submeter todas as suas respostas de um exame de uma só vez
+2. **Visualizar Resultados**: Estudantes podem visualizar seus resultados detalhados incluindo respostas corretas/incorretas e porcentagem de acerto
 
-## Database Models
+## Modelos do Banco de Dados
 
-### ExamSubmission
-- `student`: Foreign key to Student model
-- `exam`: Foreign key to Exam model  
-- `submitted_at`: Timestamp when submitted
-- `score`: Property that calculates percentage score
-- `correct_answers_count`: Property that counts correct answers
-- Unique constraint on (student, exam) - one submission per student per exam
+### ExamSubmission (Submissão de Exame)
+- `student`: Chave estrangeira para o modelo Student
+- `exam`: Chave estrangeira para o modelo Exam
+- `submitted_at`: Timestamp de quando foi submetido
+- `score`: Propriedade que calcula a porcentagem de acerto
+- `correct_answers_count`: Propriedade que conta as respostas corretas
+- Constraint único em (student, exam) - uma submissão por estudante por exame
 
-### SubmissionAnswer
-- `submission`: Foreign key to ExamSubmission
-- `question`: Foreign key to Question
-- `selected_alternative_option`: Integer (1-5 representing A-E)
-- `is_correct`: Property that checks if answer matches correct alternative
-- Unique constraint on (submission, question) - one answer per question per submission
+### SubmissionAnswer (Resposta da Submissão)
+- `submission`: Chave estrangeira para ExamSubmission
+- `question`: Chave estrangeira para Question
+- `selected_alternative_option`: Inteiro (1-5 representando A-E)
+- `is_correct`: Propriedade que verifica se a resposta está correta
+- Constraint único em (submission, question) - uma resposta por questão por submissão
 
-## API Endpoints
+## Endpoints da API
 
-### 1. Submit Exam Answers
+### 1. Submeter Respostas do Exame
 **POST** `/api/exam/submit/`
 
-Submit all answers for an exam at once.
+Submete todas as respostas de um exame de uma só vez.
 
-**Request Body:**
+**Corpo da Requisição:**
 ```json
 {
     "student_id": 1,
@@ -47,40 +47,40 @@ Submit all answers for an exam at once.
 }
 ```
 
-**Response (Success - 201):**
+**Resposta (Sucesso - 201):**
 ```json
 {
     "success": true,
-    "message": "Exam submitted successfully",
+    "message": "Exame submetido com sucesso",
     "submission_id": 1,
     "submitted_at": "2025-11-13T14:53:21.123456Z",
     "total_answers": 5
 }
 ```
 
-**Response (Error - 400):**
+**Resposta (Erro - 400):**
 ```json
 {
     "success": false,
     "errors": {
-        "student_id": ["Student does not exist"],
-        "answers": ["Questions [6, 7] do not belong to exam 1"]
+        "student_id": ["Estudante não existe"],
+        "answers": ["Questões [6, 7] não pertencem ao exame 1"]
     }
 }
 ```
 
-### 2. Get Exam Results (by submission ID)
+### 2. Obter Resultados do Exame (por ID da submissão)
 **GET** `/api/exam/results/{submission_id}/`
 
-Get detailed results for a specific submission.
+Obtém resultados detalhados para uma submissão específica.
 
-**Response (200):**
+**Resposta (200):**
 ```json
 {
     "success": true,
     "results": {
         "id": 1,
-        "student_name": "John Doe",
+        "student_name": "João Silva",
         "exam_name": "Prova Falsa 1",
         "submitted_at": "2025-11-13T14:53:21.123456Z",
         "total_questions": 5,
@@ -102,53 +102,53 @@ Get detailed results for a specific submission.
                     {"option": 4, "option_letter": "D", "content": "Braços", "is_correct": false}
                 ]
             }
-            // ... more questions
+            // ... mais questões
         ]
     }
 }
 ```
 
-### 3. Get Exam Results (by student and exam ID)
+### 3. Obter Resultados do Exame (por ID do estudante e exame)
 **GET** `/api/exam/student/{student_id}/exam/{exam_id}/results/`
 
-Alternative endpoint to get results using student and exam IDs.
+Endpoint alternativo para obter resultados usando IDs do estudante e exame.
 
-Same response format as above.
+Mesmo formato de resposta do endpoint anterior.
 
-## Validation Rules
+## Regras de Validação
 
-### Submission Validation
-- Student must exist
-- Exam must exist
-- All questions must exist and belong to the specified exam
-- No duplicate questions in the answer list
-- Student cannot submit the same exam twice
-- Selected option must be between 1-5 (A-E)
+### Validação da Submissão
+- Estudante deve existir
+- Exame deve existir
+- Todas as questões devem existir e pertencer ao exame especificado
+- Não pode haver questões duplicadas na lista de respostas
+- Estudante não pode submeter o mesmo exame duas vezes
+- Opção selecionada deve estar entre 1-5 (A-E)
 
-### Error Scenarios
-- **404**: Submission not found (for results endpoints)
-- **400**: Validation errors (invalid data, duplicate submission, etc.)
+### Cenários de Erro
+- **404**: Submissão não encontrada (para endpoints de resultados)
+- **400**: Erros de validação (dados inválidos, submissão duplicada, etc.)
 
-## Usage Examples
+## Exemplos de Uso
 
-### Example 1: Complete workflow
-1. Student submits answers for exam ID 1
-2. System validates all data and creates submission
-3. Student can view results using submission ID or student/exam IDs
+### Exemplo 1: Fluxo completo
+1. Estudante submete respostas para o exame ID 1
+2. Sistema valida todos os dados e cria a submissão
+3. Estudante pode visualizar resultados usando o ID da submissão ou IDs do estudante/exame
 
-### Example 2: Answer options
-- Option 1 = A
-- Option 2 = B  
-- Option 3 = C
-- Option 4 = D
-- Option 5 = E
+### Exemplo 2: Opções de resposta
+- Opção 1 = A
+- Opção 2 = B  
+- Opção 3 = C
+- Opção 4 = D
+- Opção 5 = E
 
-## Database Setup
+## Configuração do Banco de Dados
 
-To apply the migrations:
+Para aplicar as migrações:
 ```bash
 python manage.py makemigrations exam
 python manage.py migrate
 ```
 
-The system automatically creates the ExamSubmission and SubmissionAnswer tables with proper relationships and constraints.
+O sistema cria automaticamente as tabelas ExamSubmission e SubmissionAnswer com os relacionamentos e constraints apropriados.

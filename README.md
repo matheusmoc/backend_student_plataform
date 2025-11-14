@@ -15,34 +15,130 @@ Fluxo simplificado de submissão:
 3) O worker Celery consome a tarefa e cria a submissão e as respostas no banco de dados.
 4) O cliente consulta o status pelo task_id e, quando a tarefa estiver concluída, recebe o resultado com os dados da submissão.
 
-## 2. Modelos de Dados (resumo)
+## 2. Modelos de Dados e Relacionamentos
 
-### Exam
+Esta seção descreve as entidades principais, seus campos relevantes e como elas se relacionam entre si, utilizando cardinalidades (one-to-many, many-to-many, etc.).
+
+### 2.1. Entidades
+
+#### Student (AUTH_USER_MODEL)
+- id: inteiro
+- username, email, name
+
+#### Question
+- id: inteiro
+- content: texto da questão
+
+#### Alternative
+- id: inteiro
+- question_id: inteiro (FK para Question)
+- option: inteiro [1..5] (A..E)
+- is_correct: booleano
+
+Relação: Question (one) → Alternative (many) [one-to-many]
+
+#### Exam
 - id: inteiro
 - name: string
-- questions: relação ManyToMany via ExamQuestion
+- questions: ManyToMany para Question via tabela de junção ExamQuestion
 
-### ExamQuestion
-- exam_id: inteiro
-- question_id: inteiro
-- number: inteiro (ordem no exame)
-– unique_together: (exam, number)
+Relação: Exam (many) ↔ Question (many) [many-to-many] por meio de ExamQuestion
 
-### ExamSubmission
+#### ExamQuestion (tabela de junção/atributiva)
 - id: inteiro
-- student_id: inteiro
-- exam_id: inteiro
+- exam_id: inteiro (FK para Exam)
+- question_id: inteiro (FK para Question)
+- number: inteiro (ordem da questão no exame)
+
+Restrição: unique_together (exam, number)
+
+#### ExamSubmission
+- id: inteiro
+- student_id: inteiro (FK para Student)
+- exam_id: inteiro (FK para Exam)
 - submitted_at: datetime
-- score (propriedade): porcentagem de acerto
-- correct_answers_count (propriedade)
-– unique_together: (student, exam)
+- score: propriedade calculada (percentual de acerto)
+- correct_answers_count: propriedade calculada
 
-### SubmissionAnswer
+Restrições: unique_together (student, exam)
+
+Relações:
+- Student (one) → ExamSubmission (many) [one-to-many]
+- Exam (one) → ExamSubmission (many) [one-to-many]
+
+#### SubmissionAnswer
 - id: inteiro
-- submission_id: inteiro
-- question_id: inteiro
+- submission_id: inteiro (FK para ExamSubmission)
+- question_id: inteiro (FK para Question)
 - selected_alternative_option: inteiro [1..5] (A..E)
-– unique_together: (submission, question)
+
+Restrição: unique_together (submission, question)
+
+Relações:
+- ExamSubmission (one) → SubmissionAnswer (many) [one-to-many]
+- Question (one) → SubmissionAnswer (many) [one-to-many]
+
+### 2.2. Visão Geral dos Relacionamentos
+
+- Question 1 — N Alternative
+- Exam N — N Question (via ExamQuestion)
+- Exam 1 — N ExamQuestion; Question 1 — N ExamQuestion
+- Student 1 — N ExamSubmission
+- Exam 1 — N ExamSubmission
+- ExamSubmission 1 — N SubmissionAnswer
+- Question 1 — N SubmissionAnswer
+
+Observação: não há relacionamentos one-to-one entre os modelos do domínio de exame/submissão.
+
+### 2.3. Diagrama de Relacionamentos (ER)
+
+```mermaid
+erDiagram
+    STUDENT ||--o{ EXAM_SUBMISSION : has
+    EXAM ||--o{ EXAM_SUBMISSION : has
+    EXAM ||--o{ EXAM_QUESTION : includes
+    QUESTION ||--o{ EXAM_QUESTION : included_in
+    QUESTION ||--o{ ALTERNATIVE : has
+    EXAM_SUBMISSION ||--o{ SUBMISSION_ANSWER : records
+    QUESTION ||--o{ SUBMISSION_ANSWER : answered_by
+
+    STUDENT {
+        int id PK
+        string name
+    }
+    EXAM {
+        int id PK
+        string name
+    }
+    QUESTION {
+        int id PK
+        string content
+    }
+    ALTERNATIVE {
+        int id PK
+        int question_id FK
+        int option
+        bool is_correct
+    }
+    EXAM_QUESTION {
+        int id PK
+        int exam_id FK
+        int question_id FK
+        int number
+    }
+    EXAM_SUBMISSION {
+        int id PK
+        int student_id FK
+        int exam_id FK
+        datetime submitted_at
+    }
+    SUBMISSION_ANSWER {
+        int id PK
+        int submission_id FK
+        int question_id FK
+        int selected_alternative_option
+    }
+```
 
 ## 3. Endpoints
 

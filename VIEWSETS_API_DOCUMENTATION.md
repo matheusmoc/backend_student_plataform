@@ -111,7 +111,7 @@ GET /api/exam/exams/?has_questions=true&ordering=-name&search=prova
 
 #### **👤 Minhas Submissões**
 ```http
-GET /api/exam/submissions/my_submissions/?student_id={id}
+GET /api/exam/submissions/student_submission/?student_id={id}
 ```
 
 **Resposta:**

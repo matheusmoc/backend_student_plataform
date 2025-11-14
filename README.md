@@ -148,7 +148,7 @@ Base: `/api/exam/`
 
 1) Criar submissão (assíncrono)
 - Método: POST
-- URL: `/api/exam/submissions/async/`
+- URL: `/api/exam/submissions/`
 - Corpo (JSON):
 ```json
 {

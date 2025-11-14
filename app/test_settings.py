@@ -45,3 +45,10 @@ LOGGING = {
         },
     },
 }
+
+# Celery eager mode for tests (no broker/worker needed)
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_STORE_EAGER_RESULT = True
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_BROKER_URL = 'memory://'
+CELERY_RESULT_BACKEND = 'cache+memory://'

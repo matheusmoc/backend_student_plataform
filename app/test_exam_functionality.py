@@ -11,8 +11,9 @@ from rest_framework import status
 from django.urls import reverse
 from unittest.mock import patch
 import json
+import exam.urls
+from django.urls import reverse
 
-# Import models
 from exam.models import Exam, ExamQuestion, ExamSubmission, SubmissionAnswer
 from question.models import Question, Alternative
 from student.models import Student
@@ -44,11 +45,12 @@ class TestImports:
         assert ExamResultSerializer is not None
     
     def test_view_imports(self):
-        """Test view imports"""
-        from exam.views import ExamViewSet, ExamSubmissionViewSet
+        """Test APIView imports (migrated from ViewSets)"""
+        from exam.views import ExamsAPIView, ExamDetailAPIView, SubmissionsAPIView
 
-        assert ExamViewSet is not None
-        assert ExamSubmissionViewSet is not None
+        assert ExamsAPIView is not None
+        assert ExamDetailAPIView is not None
+        assert SubmissionsAPIView is not None
 class TestModelStructure:
     """Test model structure and relationships"""
     
@@ -117,20 +119,15 @@ class TestURLConfiguration:
         assert len(exam.urls.urlpatterns) >= 3
     
     def test_url_patterns(self):
-        """Test specific URL patterns"""
-        import exam.urls
-
-        # Com ViewSets, os padrões são criados automaticamente pelo router
-        # Verificamos se pelo menos os padrões básicos existem
-        from django.urls import reverse
-        
-        # Testa se as URLs dos ViewSets existem
+        """Test specific URL patterns for APIViews and compat endpoints"""
         try:
-            reverse('exam-list')  
-            reverse('examsubmission-list') 
-            assert True
-        except:
-            assert False, "ViewSet URLs not properly configured"
+            reverse('exams-list-create')
+            reverse('submissions-list-create')
+            reverse('submit-exam')
+            url = reverse('exam-results', kwargs={'pk': 1})
+            assert '/results/1/' in url
+        except Exception as e:
+            assert False, f"APIView URLs not properly configured: {e}"
 @pytest.mark.django_db
 class TestModelFunctionality(TestCase):
     """Test model functionality with database"""
@@ -159,7 +156,6 @@ class TestModelFunctionality(TestCase):
             question=self.question2, content='Option B', option=2, is_correct=False
         )
         
-        # Create exam
         self.exam = Exam.objects.create(name='Test Exam')
         ExamQuestion.objects.create(exam=self.exam, question=self.question1, number=1)
         ExamQuestion.objects.create(exam=self.exam, question=self.question2, number=2)

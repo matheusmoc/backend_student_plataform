@@ -12,25 +12,23 @@ def run_tests():
     """Run all pytest tests with detailed output"""
     
     print("=" * 70)
-    print("🧪 EXECUTANDO TESTES COM PYTEST")
+    print("========= EXECUTANDO TESTES COM PYTEST =========")
     print("=" * 70)
     print()
     
-    # Set environment variable for Django settings
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'test_settings')
-    
-    # Test commands to run
+
     test_commands = [
         {
-            'name': '📋 Testes de Estrutura e Importações',
+            'name': '========= Testes de Estrutura e Importações =========',
             'cmd': [sys.executable, '-m', 'pytest', 'test_exam_functionality.py', '-v', '--tb=short']
         },
         {
-            'name': '🔌 Testes de Integração da API',
+            'name': '========= Testes de Integração da API =========',
             'cmd': [sys.executable, '-m', 'pytest', 'test_api_integration.py', '-v', '--tb=short']
         },
         {
-            'name': '🎯 Teste Completo (Todos os testes)',
+            'name': '========= Teste Completo (Todos os testes) =========',
             'cmd': [sys.executable, '-m', 'pytest', 'test_exam_functionality.py', 'test_api_integration.py', 
                    '-v', '--tb=short', '--durations=10']
         }
@@ -47,11 +45,11 @@ def run_tests():
             
             if result.returncode == 0:
                 print("✅ SUCESSO")
-                print(result.stdout.split('\n')[-3:-1])  # Show summary lines
+                print(result.stdout.split('\n')[-3:-1])  
                 results.append(True)
             else:
                 print("❌ FALHOU")
-                print("STDOUT:", result.stdout[-500:])  # Last 500 chars
+                print("STDOUT:", result.stdout[-500:])  
                 print("STDERR:", result.stderr)
                 results.append(False)
                 
@@ -59,9 +57,8 @@ def run_tests():
             print(f"❌ ERRO: {e}")
             results.append(False)
     
-    # Final summary
     print("\n" + "=" * 70)
-    print("📊 RESUMO DOS TESTES")
+    print("========= RESUMO DOS TESTES =========")
     print("=" * 70)
     
     total_tests = len(results)
@@ -74,8 +71,8 @@ def run_tests():
     print(f"\n🎯 Total: {passed_tests}/{total_tests} testes passaram")
     
     if all(results):
-        print("\n🎉 TODOS OS TESTES PASSARAM!")
-        print("\n📝 Próximos passos:")
+        print("\n========= TODOS OS TESTES PASSARAM! =========")
+        print("\nPróximos passos:")
         print("   1. Execute 'python manage.py migrate' para aplicar migrações")
         print("   2. Execute 'python manage.py runserver' para iniciar o servidor")
         print("   3. Teste os endpoints usando a documentação em API_DOCUMENTATION.md")
@@ -102,11 +99,9 @@ def run_specific_test(test_name):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        # Run specific test
         test_name = sys.argv[1]
         success = run_specific_test(test_name)
         sys.exit(0 if success else 1)
     else:
-        # Run all tests
         success = run_tests()
         sys.exit(0 if success else 1)

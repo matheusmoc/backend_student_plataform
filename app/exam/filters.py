@@ -74,7 +74,6 @@ class ExamSubmissionFilter(django_filters.FilterSet):
     def filter_min_score(self, queryset, name, value):
         """Filtra submissões com pontuação mínima"""
         if value is not None:
-            # Como score é uma propriedade, precisamos calcular manualmente
             filtered_ids = []
             for submission in queryset:
                 if submission.score >= value:
@@ -85,7 +84,6 @@ class ExamSubmissionFilter(django_filters.FilterSet):
     def filter_max_score(self, queryset, name, value):
         """Filtra submissões com pontuação máxima"""
         if value is not None:
-            # Como score é uma propriedade, precisamos calcular manualmente
             filtered_ids = []
             for submission in queryset:
                 if submission.score <= value:

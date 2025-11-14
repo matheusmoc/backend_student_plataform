@@ -84,7 +84,7 @@ class TestExamViewSet(APITestCase):
         SubmissionAnswer.objects.create(
             submission=submission,
             question=self.question1,
-            selected_alternative_option=1  # Resposta correta
+            selected_alternative_option=1  
         )
         
         url = f'/api/exam/exams/{self.exam.id}/statistics/'
@@ -128,14 +128,13 @@ class TestExamSubmissionViewSet(APITestCase):
             question=self.question2, content='Option B', option=2, is_correct=True
         )
         
-        # Criar exame
         self.exam = Exam.objects.create(name='Test Exam')
         ExamQuestion.objects.create(exam=self.exam, question=self.question1, number=1)
         ExamQuestion.objects.create(exam=self.exam, question=self.question2, number=2)
     
     def test_create_submission(self):
         """Teste criar nova submissão"""
-        url = '/api/exam/submissions/'
+        url = '/api/exam/submissions'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -146,11 +145,15 @@ class TestExamSubmissionViewSet(APITestCase):
         }
         
         response = self.client.post(url, data, format='json')
-        
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.data['success'] == True
-        assert 'submission_id' in response.data
-        assert response.data['score'] == 100.0  # Ambas corretas
+        assert 'task_id' in response.data
+
+        status_url = f"/api/exam/submissions/status/?task_id={response.data['task_id']}"
+        status_resp = self.client.get(status_url)
+        assert status_resp.status_code == status.HTTP_200_OK
+        assert status_resp.data['success']
+        assert status_resp.data['task']['submission']['score'] == 100.0  # Ambas corretas
     
     def test_list_submissions(self):
         """Teste listar submissões"""
@@ -191,7 +194,7 @@ class TestExamSubmissionViewSet(APITestCase):
         assert response.data['success'] == True
         assert response.data['results']['student_name'] == 'Test Student'
     
-    def test_my_submissions(self):
+    def test_student_submissions(self):
         """Teste endpoint de minhas submissões"""
 
         submission = ExamSubmission.objects.create(
@@ -199,7 +202,7 @@ class TestExamSubmissionViewSet(APITestCase):
             exam=self.exam
         )
         
-        url = f'/api/exam/submissions/my_submissions/?student_id={self.student.id}'
+        url = f'/api/exam/submissions/student_submission/?student_id={self.student.id}'
         response = self.client.get(url)
         
         assert response.status_code == status.HTTP_200_OK

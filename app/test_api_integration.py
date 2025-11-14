@@ -53,8 +53,8 @@ class TestExamSubmissionAPI(APITestCase):
         ExamQuestion.objects.create(exam=self.exam, question=self.question2, number=2)
     
     def test_submit_exam_success(self):
-        """Test successful exam submission"""
-        url = '/api/exam/submit/'
+        """Test successful exam submission using async endpoint"""
+        url = '/api/exam/submissions/async/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -66,19 +66,32 @@ class TestExamSubmissionAPI(APITestCase):
         
         response = self.client.post(url, data, format='json')
         
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.data['success'] == True
-        assert 'submission_id' in response.data
-        assert response.data['total_answers'] == 2
-        
-        submission = ExamSubmission.objects.get(id=response.data['submission_id'])
+        assert 'task_id' in response.data
+
+
+        status_url = f"/api/exam/submissions/status/?task_id={response.data['task_id']}"
+        status_resp = self.client.get(status_url)
+        assert status_resp.status_code in [status.HTTP_200_OK, status.HTTP_202_ACCEPTED]
+        assert status_resp.data['success'] == True
+    
+        if status_resp.status_code == status.HTTP_200_OK:
+            submission_id = status_resp.data['task']['submission']['id']
+        else:
+          
+            status_resp = self.client.get(status_url)
+            assert status_resp.status_code == status.HTTP_200_OK
+            submission_id = status_resp.data['task']['submission']['id']
+
+        submission = ExamSubmission.objects.get(id=submission_id)
         assert submission.student == self.student
         assert submission.exam == self.exam
         assert submission.answers.count() == 2
     
     def test_submit_exam_invalid_student(self):
         """Test submission with invalid student ID"""
-        url = '/api/exam/submit/'
+        url = '/api/exam/submissions/async/'
         data = {
             'student_id': 9999,
             'exam_id': self.exam.id,
@@ -95,7 +108,7 @@ class TestExamSubmissionAPI(APITestCase):
     
     def test_submit_exam_invalid_exam(self):
         """Test submission with invalid exam ID"""
-        url = '/api/exam/submit/'
+        url = '/api/exam/submissions/async/'
         data = {
             'student_id': self.student.id,
             'exam_id': 9999,
@@ -115,7 +128,7 @@ class TestExamSubmissionAPI(APITestCase):
 
         other_question = Question.objects.create(content='Other question?')
         
-        url = '/api/exam/submit/'
+        url = '/api/exam/submissions/async/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -135,7 +148,7 @@ class TestExamSubmissionAPI(APITestCase):
 
         ExamSubmission.objects.create(student=self.student, exam=self.exam)
         
-        url = '/api/exam/submit/'
+        url = '/api/exam/submissions/async/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -152,12 +165,12 @@ class TestExamSubmissionAPI(APITestCase):
     
     def test_submit_exam_invalid_option(self):
         """Test submission with invalid option number"""
-        url = '/api/exam/submit/'
+        url = '/api/exam/submissions/async/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
             'answers': [
-                {'question_id': self.question1.id, 'selected_option': 6}  # Invalid option
+                {'question_id': self.question1.id, 'selected_option': 6} 
             ]
         }
         
@@ -282,7 +295,6 @@ class TestExamResultsAPI(APITestCase):
         assert q1['is_correct'] == True
         assert len(q1['alternatives']) >= 2
         
-        # Check second question (incorrect answer)
         q2 = questions[1]
         assert q2['content'] == 'Test question 2?'
         assert q2['student_answer'] == 2
@@ -306,7 +318,6 @@ class TestCompleteWorkflow(APITestCase):
             name='Workflow Test Student'
         )
         
-        # Create questions with alternatives
         self.question1 = Question.objects.create(content='Workflow question 1?')
         Alternative.objects.create(
             question=self.question1, content='Option A', option=1, is_correct=True
@@ -330,23 +341,26 @@ class TestCompleteWorkflow(APITestCase):
     def test_complete_workflow(self):
         """Test complete workflow: submit -> get results"""
         
-        # Step 1: Submit exam
-        submit_url = '/api/exam/submit/'
+        submit_url = '/api/exam/submissions/async/'
         submit_data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
             'answers': [
-                {'question_id': self.question1.id, 'selected_option': 1},  # Correct
-                {'question_id': self.question2.id, 'selected_option': 2}   # Correct
+                {'question_id': self.question1.id, 'selected_option': 1}, 
+                {'question_id': self.question2.id, 'selected_option': 2}  
             ]
         }
         
         submit_response = self.client.post(submit_url, submit_data, format='json')
         
-        assert submit_response.status_code == status.HTTP_201_CREATED
-        submission_id = submit_response.data['submission_id']
+        assert submit_response.status_code == status.HTTP_202_ACCEPTED
+        task_id = submit_response.data['task_id']
+       
+        status_url = f"/api/exam/submissions/status/?task_id={task_id}"
+        status_resp = self.client.get(status_url)
+        assert status_resp.status_code == status.HTTP_200_OK
+        submission_id = status_resp.data['task']['submission']['id']
         
-        # Step 2: Get results by submission ID
         results_url = f'/api/exam/results/{submission_id}/'
         results_response = self.client.get(results_url)
         
@@ -361,7 +375,7 @@ class TestCompleteWorkflow(APITestCase):
         alt_results_response = self.client.get(alt_results_url)
 
         assert alt_results_response.status_code == status.HTTP_200_OK
-        # ViewSet retorna lista direta ou com paginação
+
         submissions_data = alt_results_response.data
         if isinstance(submissions_data, dict) and 'results' in submissions_data:
             submissions_data = submissions_data['results']

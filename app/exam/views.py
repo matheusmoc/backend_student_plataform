@@ -123,20 +123,21 @@ class SubmissionsAPIView(APIView):
         serializer = ExamResultSerializer(qs, many=True)
         return Response({'success': True, 'count': qs.count(), 'results': serializer.data})
 
-class SubmissionsAsyncAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
-        """Enfileira a submissão para processamento assíncrono via Celery.
+        """Processa submissão de exame de forma assíncrona (padrão padrão agora em /submissions/).
+
+        Fluxo:
+        1. Valida payload via ExamSubmissionCreateSerializer.
+        2. Enfileira task Celery para criação idempotente da submissão e respostas.
+        3. Retorna 202 com task_id para acompanhamento em /submissions/status/?task_id=... .
 
         Respostas:
-        - 202 Accepted com task_id e dica de URL para acompanhar o status
-        - 400 em caso de validação inválida
+        - 202 Accepted: {'task_id': <str>, ...}
+        - 400 Bad Request: erros de validação.
         """
         serializer = ExamSubmissionCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({'success': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
         payload = serializer.validated_data
         task = process_exam_submission.delay(payload)
         return Response({

@@ -14,4 +14,5 @@ urlpatterns = [
     path('submissions/student_submission/', views.StudentSubmissionsAPIView.as_view(), name='submissions-student'),
     path('submissions/<int:pk>/detailed_analysis/', views.SubmissionDetailedAnalysisAPIView.as_view(), name='submissions-detailed-analysis'),
     path('submissions/student/<int:student_id>/exam/<int:exam_id>/', views.StudentExamResultsAPIView.as_view(), name='submissions-student-exam'),
+    path('results/<int:pk>/', views.SubmissionDetailAPIView.as_view(), name='exam-results'),
 ]

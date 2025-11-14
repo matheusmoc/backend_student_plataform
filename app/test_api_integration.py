@@ -54,7 +54,7 @@ class TestExamSubmissionAPI(APITestCase):
     
     def test_submit_exam_success(self):
         """Test successful exam submission using async endpoint"""
-        url = '/api/exam/submissions/async/'
+        url = '/api/exam/submissions/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -91,7 +91,7 @@ class TestExamSubmissionAPI(APITestCase):
     
     def test_submit_exam_invalid_student(self):
         """Test submission with invalid student ID"""
-        url = '/api/exam/submissions/async/'
+        url = '/api/exam/submissions/'
         data = {
             'student_id': 9999,
             'exam_id': self.exam.id,
@@ -108,7 +108,7 @@ class TestExamSubmissionAPI(APITestCase):
     
     def test_submit_exam_invalid_exam(self):
         """Test submission with invalid exam ID"""
-        url = '/api/exam/submissions/async/'
+        url = '/api/exam/submissions/'
         data = {
             'student_id': self.student.id,
             'exam_id': 9999,
@@ -128,7 +128,7 @@ class TestExamSubmissionAPI(APITestCase):
 
         other_question = Question.objects.create(content='Other question?')
         
-        url = '/api/exam/submissions/async/'
+        url = '/api/exam/submissions/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -148,7 +148,7 @@ class TestExamSubmissionAPI(APITestCase):
 
         ExamSubmission.objects.create(student=self.student, exam=self.exam)
         
-        url = '/api/exam/submissions/async/'
+        url = '/api/exam/submissions/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -165,7 +165,7 @@ class TestExamSubmissionAPI(APITestCase):
     
     def test_submit_exam_invalid_option(self):
         """Test submission with invalid option number"""
-        url = '/api/exam/submissions/async/'
+        url = '/api/exam/submissions/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,
@@ -341,7 +341,7 @@ class TestCompleteWorkflow(APITestCase):
     def test_complete_workflow(self):
         """Test complete workflow: submit -> get results"""
         
-        submit_url = '/api/exam/submissions/async/'
+        submit_url = '/api/exam/submissions/'
         submit_data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,

@@ -123,7 +123,6 @@ class TestURLConfiguration:
         try:
             reverse('exams-list-create')
             reverse('submissions-list-create')
-            reverse('submit-exam')
             url = reverse('exam-results', kwargs={'pk': 1})
             assert '/results/1/' in url
         except Exception as e:

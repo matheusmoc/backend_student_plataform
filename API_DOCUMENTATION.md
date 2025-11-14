@@ -1,154 +1,227 @@
-# Documentação da API de Submissão de Exames
+# API de Exames – Documentação
 
-Este documento explica como usar as funcionalidades de submissão de exames e visualização de resultados.
+Este documento descreve a estrutura da API, a arquitetura do sistema e os formatos de dados aceitos e retornados pelos principais endpoints.
 
-## Visão Geral
+## 1. Arquitetura e Componentes
 
-O sistema fornece duas funcionalidades principais:
-1. **Submeter Respostas do Exame**: Estudantes podem submeter todas as suas respostas de um exame de uma só vez
-2. **Visualizar Resultados**: Estudantes podem visualizar seus resultados detalhados incluindo respostas corretas/incorretas e porcentagem de acerto
+- Serviço HTTP (Django + DRF): expõe os endpoints da API.
+- Processamento assíncrono (Celery workers): executa a criação de submissões fora do ciclo de requisição HTTP.
+- Broker e Result Backend (Redis): fila as tarefas e armazena o status/resultado para consulta.
+- Banco de Dados (SQLite em desenvolvimento e testes; PostgreSQL em produção via Docker Compose).
 
-## Modelos do Banco de Dados
+Fluxo simplificado de submissão:
+1) Cliente envia POST para o endpoint de submissão assíncrona.
+2) A API valida os dados e enfileira uma tarefa Celery, retornando 202 Accepted e um identificador de tarefa (task_id).
+3) O worker Celery consome a tarefa e cria a submissão e as respostas no banco de dados.
+4) O cliente consulta o status pelo task_id e, quando a tarefa estiver concluída, recebe o resultado com os dados da submissão.
 
-### ExamSubmission (Submissão de Exame)
-- `student`: Chave estrangeira para o modelo Student
-- `exam`: Chave estrangeira para o modelo Exam
-- `submitted_at`: Timestamp de quando foi submetido
-- `score`: Propriedade que calcula a porcentagem de acerto
-- `correct_answers_count`: Propriedade que conta as respostas corretas
-- Constraint único em (student, exam) - uma submissão por estudante por exame
+## 2. Modelos de Dados (resumo)
 
-### SubmissionAnswer (Resposta da Submissão)
-- `submission`: Chave estrangeira para ExamSubmission
-- `question`: Chave estrangeira para Question
-- `selected_alternative_option`: Inteiro (1-5 representando A-E)
-- `is_correct`: Propriedade que verifica se a resposta está correta
-- Constraint único em (submission, question) - uma resposta por questão por submissão
+### Exam
+- id: inteiro
+- name: string
+- questions: relação ManyToMany via ExamQuestion
 
-## Endpoints da API
+### ExamQuestion
+- exam_id: inteiro
+- question_id: inteiro
+- number: inteiro (ordem no exame)
+– unique_together: (exam, number)
 
-### 1. Submeter Respostas do Exame
-**POST** `/api/exam/submit/`
+### ExamSubmission
+- id: inteiro
+- student_id: inteiro
+- exam_id: inteiro
+- submitted_at: datetime
+- score (propriedade): porcentagem de acerto
+- correct_answers_count (propriedade)
+– unique_together: (student, exam)
 
-Submete todas as respostas de um exame de uma só vez.
+### SubmissionAnswer
+- id: inteiro
+- submission_id: inteiro
+- question_id: inteiro
+- selected_alternative_option: inteiro [1..5] (A..E)
+– unique_together: (submission, question)
 
-**Corpo da Requisição:**
+## 3. Endpoints
+
+Base: `/api/exam/`
+
+### 3.1. Submissões
+
+1) Criar submissão (assíncrono)
+- Método: POST
+- URL: `/api/exam/submissions/async/`
+- Corpo (JSON):
 ```json
 {
     "student_id": 1,
-    "exam_id": 1,
+    "exam_id": 10,
     "answers": [
-        {"question_id": 1, "selected_option": 3},
-        {"question_id": 2, "selected_option": 2},
-        {"question_id": 3, "selected_option": 1},
-        {"question_id": 4, "selected_option": 4},
-        {"question_id": 5, "selected_option": 2}
+        {"question_id": 101, "selected_option": 2},
+        {"question_id": 102, "selected_option": 4}
+    ]
+}
+```
+- Respostas:
+    - 202 Accepted
+    ```json
+    {
+        "success": true,
+        "message": "Submissão recebida e enfileirada",
+        "processing": "asynchronous",
+        "task_id": "<uuid>",
+        "poll_url_hint": "/api/exam/submissions/status/?task_id=<uuid>"
+    }
+    ```
+    - 400 Bad Request (erros de validação)
+    ```json
+    {
+        "success": false,
+        "errors": {
+            "student_id": ["Estudante não existe"],
+            "answers": ["Questões [X] não pertencem ao exame Y"]
+        }
+    }
+    ```
+
+2) Consultar status de submissão
+- Método: GET
+- URL: `/api/exam/submissions/status/?task_id=<uuid>`
+- Respostas:
+    - 202 Accepted (PENDING/STARTED)
+    ```json
+    {"success": true, "task": {"state": "PENDING"}}
+    ```
+    - 200 OK (SUCCESS)
+    ```json
+    {
+        "success": true,
+        "task": {
+            "state": "SUCCESS",
+            "created": true,
+            "submission": {"id": 1, "student_id": 1, "exam_id": 10, "score": 100.0, "total_answers": 2}
+        }
+    }
+    ```
+    - 500 (FAILURE)
+    ```json
+    {"success": true, "task": {"state": "FAILURE", "error": "<mensagem>"}}
+    ```
+
+3) Listar submissões
+- Método: GET
+- URL: `/api/exam/submissions/`
+- Parâmetros de query suportados: `student`, `student_id`, `exam`, `exam_id`, `student_name`.
+- Resposta (200):
+```json
+{
+    "success": true,
+    "count": 1,
+    "results": [
+        {
+            "id": 1,
+            "student_name": "João Silva",
+            "exam_name": "Exame X",
+            "submitted_at": "2025-11-13T14:53:21Z",
+            "total_questions": 2,
+            "correct_answers": 2,
+            "score_percentage": 100.0,
+            "questions": [ /* ver seção 3.3 */ ]
+        }
     ]
 }
 ```
 
-**Resposta (Sucesso - 201):**
-```json
-{
-    "success": true,
-    "message": "Exame submetido com sucesso",
-    "submission_id": 1,
-    "submitted_at": "2025-11-13T14:53:21.123456Z",
-    "total_answers": 5
-}
-```
-
-**Resposta (Erro - 400):**
-```json
-{
-    "success": false,
-    "errors": {
-        "student_id": ["Estudante não existe"],
-        "answers": ["Questões [6, 7] não pertencem ao exame 1"]
-    }
-}
-```
-
-### 2. Obter Resultados do Exame (por ID da submissão)
-**GET** `/api/exam/results/{submission_id}/`
-
-Obtém resultados detalhados para uma submissão específica.
-
-**Resposta (200):**
+4) Detalhar submissão
+- Método: GET
+- URL: `/api/exam/submissions/{id}/`
+- Resposta (200):
 ```json
 {
     "success": true,
     "results": {
         "id": 1,
         "student_name": "João Silva",
-        "exam_name": "Prova Falsa 1",
-        "submitted_at": "2025-11-13T14:53:21.123456Z",
-        "total_questions": 5,
-        "correct_answers": 4,
-        "score_percentage": 80.0,
-        "questions": [
-            {
-                "id": 1,
-                "content": "Qual parte do corpo usamos para ouvir?",
-                "student_answer": 3,
-                "student_answer_letter": "C",
-                "correct_answer": 3,
-                "correct_answer_letter": "C",
-                "is_correct": true,
-                "alternatives": [
-                    {"option": 1, "option_letter": "A", "content": "Dentes", "is_correct": false},
-                    {"option": 2, "option_letter": "B", "content": "Cabelos", "is_correct": false},
-                    {"option": 3, "option_letter": "C", "content": "Ouvidos", "is_correct": true},
-                    {"option": 4, "option_letter": "D", "content": "Braços", "is_correct": false}
-                ]
-            }
-            // ... mais questões
-        ]
+        "exam_name": "Exame X",
+        "submitted_at": "2025-11-13T14:53:21Z",
+        "total_questions": 2,
+        "correct_answers": 1,
+        "score_percentage": 50.0,
+        "questions": [ /* ver seção 3.3 */ ]
     }
 }
 ```
 
-### 3. Obter Resultados do Exame (por ID do estudante e exame)
-**GET** `/api/exam/student/{student_id}/exam/{exam_id}/results/`
-
-Endpoint alternativo para obter resultados usando IDs do estudante e exame.
-
-Mesmo formato de resposta do endpoint anterior.
-
-## Regras de Validação
-
-### Validação da Submissão
-- Estudante deve existir
-- Exame deve existir
-- Todas as questões devem existir e pertencer ao exame especificado
-- Não pode haver questões duplicadas na lista de respostas
-- Estudante não pode submeter o mesmo exame duas vezes
-- Opção selecionada deve estar entre 1-5 (A-E)
-
-### Cenários de Erro
-- **404**: Submissão não encontrada (para endpoints de resultados)
-- **400**: Erros de validação (dados inválidos, submissão duplicada, etc.)
-
-## Exemplos de Uso
-
-### Exemplo 1: Fluxo completo
-1. Estudante submete respostas para o exame ID 1
-2. Sistema valida todos os dados e cria a submissão
-3. Estudante pode visualizar resultados usando o ID da submissão ou IDs do estudante/exame
-
-### Exemplo 2: Opções de resposta
-- Opção 1 = A
-- Opção 2 = B  
-- Opção 3 = C
-- Opção 4 = D
-- Opção 5 = E
-
-## Configuração do Banco de Dados
-
-Para aplicar as migrações:
-```bash
-python manage.py makemigrations exam
-python manage.py migrate
+5) Submissões por estudante
+- Método: GET
+- URL: `/api/exam/submissions/student_submission/?student_id=<id>`
+- Observação: aceita também `student=<id>` como alias de `student_id`.
+- Resposta (200):
+```json
+{
+    "success": true,
+    "student_id": "1",
+    "total_submissions": 3,
+    "average_score": 85.5,
+    "submissions": [ /* lista resumida por submissão */ ]
+}
 ```
 
-O sistema cria automaticamente as tabelas ExamSubmission e SubmissionAnswer com os relacionamentos e constraints apropriados.
+6) Resultado de um estudante em um exame
+- Método: GET
+- URL: `/api/exam/submissions/student/{student_id}/exam/{exam_id}/`
+- Resposta: mesmo formato de detalhes de submissão.
+
+7) Análise detalhada por submissão
+- Método: GET
+- URL: `/api/exam/submissions/{id}/detailed_analysis/`
+- Resposta (200): inclui média do exame, percentil do aluno e total de submissões.
+
+### 3.2. Exames
+
+1) Listar e criar exames
+- Método: GET/POST
+- URL: `/api/exam/exams/`
+
+2) Detalhar/atualizar/excluir exame
+- Método: GET/PUT/PATCH/DELETE
+- URL: `/api/exam/exams/{id}/`
+
+3) Estatísticas do exame
+- Método: GET
+- URL: `/api/exam/exams/{id}/statistics/`
+
+### 3.3. Estrutura de questão em resultados
+
+Cada item em `questions` possui a seguinte estrutura:
+```json
+{
+    "id": 101,
+    "content": "Enunciado da questão",
+    "alternatives": [
+        {"option": 1, "option_letter": "A", "content": "...", "is_correct": false},
+        {"option": 2, "option_letter": "B", "content": "...", "is_correct": true}
+    ],
+    "student_answer": 2,
+    "student_answer_letter": "B",
+    "correct_answer": 2,
+    "correct_answer_letter": "B",
+    "is_correct": true
+}
+```
+
+## 4. Regras de Validação (resumo)
+
+- `student_id` e `exam_id` devem existir.
+- Todas as `answers[*].question_id` devem existir e pertencer ao exame informado.
+- Não podem existir questões duplicadas em `answers`.
+- `selected_option` deve estar entre 1 e 5.
+- Um estudante pode ter apenas uma submissão por exame (restrição de unicidade em banco).
+
+## 5. Observações de Operação
+
+- Em produção, recomenda-se Redis para broker/result backend e PostgreSQL para banco.
+- Para alto volume, configure múltiplos workers Celery e aumente `--concurrency`.
+- Em testes, o projeto está configurado para executar Celery em modo eager (processamento imediato e sem broker externo).

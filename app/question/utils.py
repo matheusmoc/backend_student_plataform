@@ -7,3 +7,7 @@ class AlternativesChoices(models.IntegerChoices):
     C = 3, 'C'
     D = 4, 'D'
     E = 5, 'E'
+
+class QuestiosTypeChoices(models.TextChoices):
+    SINGLE = 'SINGLE', 'Única escolha'
+    MULTIPLE = 'MULTIPLE', 'Múltiplas escolhas'

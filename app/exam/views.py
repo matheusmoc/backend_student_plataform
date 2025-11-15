@@ -124,7 +124,7 @@ class SubmissionsAPIView(APIView):
         return Response({'success': True, 'count': qs.count(), 'results': serializer.data})
 
     def post(self, request):
-        """Processa submissão de exame de forma assíncrona (padrão padrão agora em /submissions/).
+        """Processa submissão de exame de forma assíncrona.
 
         Fluxo:
         1. Valida payload via ExamSubmissionCreateSerializer.

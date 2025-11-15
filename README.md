@@ -4,7 +4,8 @@ Este documento descreve a estrutura da API, a arquitetura do sistema e os format
 
 > Para instruções detalhadas de como executar e entender os testes automatizados, consulte o arquivo TESTS_README.md na raiz do repositório.
 >
-> Link direto: ./TESTS_README.md
+> Link direto: [Documentação de testes](https://github.com/matheusmoc/backend_student_plataform/blob/master/TESTS_README.md)
+
 
 ## 1. Arquitetura e Componentes
 

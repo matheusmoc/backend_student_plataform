@@ -79,7 +79,7 @@ python app/run_tests.py app/test_exam_functionality.py::TestImports
 - ✅ `ExamResultSerializer`: Estrutura e dados de resultado
 - ✅ `AnswerSubmissionSerializer`: Validação de opções
 
-## 🔧 Configuração dos Testes
+## Configuração dos Testes
 
 ### Arquivos de configuração
 - **`pytest.ini`**: Configurações do pytest

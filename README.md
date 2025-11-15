@@ -2,6 +2,10 @@
 
 Este documento descreve a estrutura da API, a arquitetura do sistema e os formatos de dados aceitos e retornados pelos principais endpoints.
 
+> Para instruções detalhadas de como executar e entender os testes automatizados, consulte o arquivo TESTS_README.md na raiz do repositório.
+>
+> Link direto: ./TESTS_README.md
+
 ## 1. Arquitetura e Componentes
 
 - Serviço HTTP (Django + DRF): expõe os endpoints da API.

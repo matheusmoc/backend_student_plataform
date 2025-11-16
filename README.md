@@ -13,7 +13,7 @@ Este documento descreve a estrutura da API, a arquitetura do sistema e os format
 - Processamento assíncrono (Celery workers): cria submissões e tarefas futuras de mudança de temperatura de dados (HOT → WARM → COLD).
 - Broker e Result Backend (Redis): fila as tarefas e armazena status/resultado.
 - Banco de Dados: PostgreSQL com fallback para SQLite.
-- Pipeline de CI (GitHub Actions): executa testes em serviço Postgres e depois build da imagem Docker.
+- Pipeline de CI (GitHub Actions): executa testes em serviço SQLite e depois build da imagem Docker.
 
 Fluxo simplificado de submissão (assíncrono por padrão):
 1) Cliente envia POST para `/api/exam/submissions/`.

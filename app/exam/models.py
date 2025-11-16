@@ -20,6 +20,9 @@ class ExamQuestion(models.Model):
 
     class Meta:
         unique_together = ('exam', 'number')
+        constraints = [
+            models.UniqueConstraint(fields=['exam', 'question'], name='uq_exam_question_unique_per_exam'),
+        ]
         ordering = ['number']
 
     def __str__(self):
@@ -56,7 +59,7 @@ class ExamSubmission(models.Model):
 class SubmissionAnswer(models.Model):
     submission = models.ForeignKey(ExamSubmission, related_name='answers', on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    selected_alternative_option = models.IntegerField()  # Stores the option number (1-5 for A-E)
+    selected_alternative_option = models.IntegerField()  #(1-5 / A-E)
     
     class Meta:
         unique_together = ('submission', 'question')

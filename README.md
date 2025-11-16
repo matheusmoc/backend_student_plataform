@@ -231,7 +231,7 @@ Base: `/api/exam/`
             "total_questions": 2,
             "correct_answers": 2,
             "score_percentage": 100.0,
-            "questions": [ /* ver seção 3.3 */ ]
+            "questions": []
         }
     ]
 }

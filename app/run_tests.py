@@ -7,6 +7,7 @@ Usage: python run_tests.py
 import subprocess
 import sys
 import os
+from pathlib import Path
 
 def run_tests():
     """Run all pytest tests with detailed output"""
@@ -16,20 +17,22 @@ def run_tests():
     print("=" * 70)
     print()
     
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'app.test_settings')
+    repo_root = Path(__file__).resolve().parent.parent
+    env = os.environ.copy()
+    env['DJANGO_SETTINGS_MODULE'] = 'app.test_settings'
 
     test_commands = [
         {
             'name': '========= Testes de Estrutura e Importações =========',
-            'cmd': [sys.executable, '-m', 'pytest', 'test_exam_functionality.py', '-v', '--tb=short']
+            'cmd': [sys.executable, '-m', 'pytest', '-c', 'app/pytest.ini', 'app/test_exam_functionality.py', '-v', '--tb=short']
         },
         {
             'name': '========= Testes de Integração da API =========',
-            'cmd': [sys.executable, '-m', 'pytest', 'test_api_integration.py', '-v', '--tb=short']
+            'cmd': [sys.executable, '-m', 'pytest', '-c', 'app/pytest.ini', 'app/test_api_integration.py', '-v', '--tb=short']
         },
         {
             'name': '========= Teste Completo (Todos os testes) =========',
-            'cmd': [sys.executable, '-m', 'pytest', 'test_exam_functionality.py', 'test_api_integration.py', 
+            'cmd': [sys.executable, '-m', 'pytest', '-c', 'app/pytest.ini', 'app/test_exam_functionality.py', 'app/test_api_integration.py', 
                    '-v', '--tb=short', '--durations=10']
         }
     ]
@@ -41,7 +44,7 @@ def run_tests():
         print("-" * 50)
         
         try:
-            result = subprocess.run(test['cmd'], capture_output=True, text=True, cwd=os.getcwd())
+            result = subprocess.run(test['cmd'], capture_output=True, text=True, cwd=str(repo_root), env=env)
             
             if result.returncode == 0:
                 print("✅ SUCESSO")

@@ -1,9 +1,8 @@
 """
-Django settings for testing
+Django settings for testing (SQLite only)
 """
 from app.medway_api.settings import *
 
-# Override database for testing
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

@@ -2,7 +2,7 @@
 
 Este documento explica como executar e entender os testes da funcionalidade de submissão de exames.
 
-## 📋 Visão Geral dos Testes
+## Visão Geral dos Testes
 
 Os testes foram implementados usando **pytest** com **pytest-django** e cobrem:
 
@@ -45,7 +45,7 @@ python -m pytest test_exam_functionality.py::TestModelFunctionality::test_exam_s
 python app/run_tests.py app/test_exam_functionality.py::TestImports
 ```
 
-## 📊 Cobertura dos Testes
+## Cobertura dos Testes
 
 ### Models Testados
 - ✅ `ExamSubmission`: Criação, propriedades, constraints
@@ -79,7 +79,7 @@ python app/run_tests.py app/test_exam_functionality.py::TestImports
 - ✅ `ExamResultSerializer`: Estrutura e dados de resultado
 - ✅ `AnswerSubmissionSerializer`: Validação de opções
 
-## 🔧 Configuração dos Testes
+## Configuração dos Testes
 
 ### Arquivos de configuração
 - **`pytest.ini`**: Configurações do pytest
@@ -114,12 +114,12 @@ Os testes usam SQLite em memória (`:memory:`) para:
 - Validação de dados de entrada
 - Serialização correta de respostas
 
-## 🎯 Interpretando os Resultados
+## Interpretando os Resultados
 
 ### Saída de Sucesso
 ```
-🎉 TODOS OS TESTES PASSARAM!
-🎯 Total: 3/3 testes passaram
+TODOS OS TESTES PASSARAM!
+Total: 3/3 testes passaram
 ============================= 27 passed in 0.37s ==============================
 ```
 
@@ -146,7 +146,7 @@ python -m pytest test_api_integration.py::TestExamSubmissionAPI::test_submit_exa
 python -m pytest test_exam_functionality.py --durations=10
 ```
 
-## 🔄 Execução Contínua
+## Execução Contínua
 
 Para desenvolvimento ativo, use:
 ```powershell
@@ -156,7 +156,7 @@ python -m pytest test_exam_functionality.py -x    # Para no primeiro erro
 
 ---
 
-## 📋 Checklist de Testes
+## Checklist de Testes
 
 - ✅ Todos os imports funcionam
 - ✅ Models têm estrutura correta  

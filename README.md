@@ -22,6 +22,46 @@ Fluxo simplificado de submissão (assíncrono por padrão):
 4) Cliente consulta status em `/api/exam/submissions/status/?task_id=<uuid>` até `SUCCESS`.
 5) Resultado final inclui score e total de respostas.
 
+
+
+### 1.1. Arquitetura de Submissão
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente (Aluno/App)
+    participant API as Django + DRF (API)
+    participant R as Redis (Broker/Resultados)
+    participant W as Celery Worker
+    participant DB as PostgreSQL
+
+    Note over C: Prepara JSON com student_id, exam_id e answers
+    C->>API: 1) POST /api/exam/submissions/ {dados da prova}
+    Note over API: Valida aluno, exame, questões e opções (1..5)
+    API->>R: 2) Enfileira task process_exam_submission
+    API-->>C: 3) 202 Accepted {task_id, poll_url}
+
+    Note over R: Armazena estado da task (PENDING/STARTED/SUCCESS/FAILURE)
+    R->>W: 4) Entrega tarefa ao worker
+    Note over W: Processa submissão e respostas com idempotência
+    W->>DB: 5) Cria ExamSubmission e SubmissionAnswer
+    W->>R: 6) Marca SUCCESS e publica resumo (id, score, total)
+
+    loop Polling de status pelo cliente
+        C->>API: 7) GET /api/exam/submissions/status?task_id=...
+        API->>R: Consulta estado/resultado
+        R-->>API: PENDING | STARTED | SUCCESS | FAILURE
+        API-->>C: 202 (andamento) ou 200 (pronto)
+    end
+```
+
+Etapas (resumo):
+- 1: Cliente envia a prova para a API com respostas.
+- 2: API valida os dados e enfileira a tarefa no Redis.
+- 3: API retorna 202 com task_id para acompanhamento.
+- 4–6: Worker processa, salva no PostgreSQL e marca SUCCESS no Redis.
+- 7–8: Cliente consulta status até obter o resultado final (score e totais).
+
 ## 2. Modelos de Dados e Relacionamentos
 
 Esta seção descreve as entidades principais, seus campos relevantes e como elas se relacionam entre si, utilizando cardinalidades (one-to-many, many-to-many, etc.).

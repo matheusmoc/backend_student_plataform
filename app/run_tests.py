@@ -16,7 +16,7 @@ def run_tests():
     print("=" * 70)
     print()
     
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'test_settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'app.test_settings')
 
     test_commands = [
         {

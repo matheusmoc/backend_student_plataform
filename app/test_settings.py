@@ -1,7 +1,7 @@
 """
 Django settings for testing
 """
-from medway_api.settings import *
+from app.medway_api.settings import *
 
 # Override database for testing
 DATABASES = {

@@ -134,7 +134,7 @@ class TestExamSubmissionViewSet(APITestCase):
     
     def test_create_submission(self):
         """Teste criar nova submissão"""
-        url = '/api/exam/submissions'
+        url = '/api/exam/submissions/'
         data = {
             'student_id': self.student.id,
             'exam_id': self.exam.id,

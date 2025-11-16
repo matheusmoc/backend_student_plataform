@@ -7,6 +7,49 @@ Este documento descreve a estrutura da API, a arquitetura do sistema e os format
 > Link direto: [Documentação de testes](https://github.com/matheusmoc/backend_student_plataform/blob/master/TESTS_README.md)
 
 
+## Início Rápido (Docker)
+
+Pré‑requisitos: Docker / Docker Compose instalados.
+
+1. Clonar o repositório:
+```powershell
+git clone https://github.com/matheusmoc/backend_student_plataform.git
+cd backend_student_plataform
+```
+2. Revisar variáveis de ambiente em `env.example` e copiar para `.env` para adicionar variáveis de ambiente:
+```powershell
+cp .env.example .env
+```
+3. Subir os serviços (API, Postgres, Redis, Celery Worker):
+```powershell
+docker compose up -d --build
+```
+4. Aplicar migrações:
+```powershell
+docker compose exec server python manage.py migrate
+```
+5. Criar superusuário para acesso ao admin:
+```powershell
+docker compose exec server python manage.py createsuperuser
+```
+6. Acessar:
+    - Admin: http://localhost:8000/admin/
+    - API base: http://localhost:8000/api/exam/
+7. Ver logs do worker Celery:
+```powershell
+docker compose logs -f celery-worker
+```
+8. Rodar testes dentro do container:
+```powershell
+docker compose exec server python app/run_tests.py
+```
+
+Para parar e remover containers:
+```powershell
+docker compose down
+```
+
+
 ## 1. Arquitetura e Componentes
 
 - Serviço HTTP (Django + DRF): expõe os endpoints da API.

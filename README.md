@@ -10,15 +10,17 @@ Este documento descreve a estrutura da API, a arquitetura do sistema e os format
 ## 1. Arquitetura e Componentes
 
 - Serviço HTTP (Django + DRF): expõe os endpoints da API.
-- Processamento assíncrono (Celery workers): executa a criação de submissões fora do ciclo de requisição HTTP.
-- Broker e Result Backend (Redis): fila as tarefas e armazena o status/resultado para consulta.
-- Banco de Dados (SQLite em desenvolvimento e testes; PostgreSQL em produção via Docker Compose).
+- Processamento assíncrono (Celery workers): cria submissões e tarefas futuras de mudança de temperatura de dados (HOT → WARM → COLD).
+- Broker e Result Backend (Redis): fila as tarefas e armazena status/resultado.
+- Banco de Dados: PostgreSQL com fallback para SQLite.
+- Pipeline de CI (GitHub Actions): executa testes em serviço Postgres e depois build da imagem Docker.
 
-Fluxo simplificado de submissão:
-1) Cliente envia POST para o endpoint de submissão assíncrona.
-2) A API valida os dados e enfileira uma tarefa Celery, retornando 202 Accepted e um identificador de tarefa (task_id).
-3) O worker Celery consome a tarefa e cria a submissão e as respostas no banco de dados.
-4) O cliente consulta o status pelo task_id e, quando a tarefa estiver concluída, recebe o resultado com os dados da submissão.
+Fluxo simplificado de submissão (assíncrono por padrão):
+1) Cliente envia POST para `/api/exam/submissions/`.
+2) API valida, enfileira tarefa Celery e retorna `202 Accepted` + `task_id`.
+3) Worker Celery processa (cria ExamSubmission e SubmissionAnswer).
+4) Cliente consulta status em `/api/exam/submissions/status/?task_id=<uuid>` até `SUCCESS`.
+5) Resultado final inclui score e total de respostas.
 
 ## 2. Modelos de Dados e Relacionamentos
 
@@ -250,7 +252,7 @@ Base: `/api/exam/`
         "total_questions": 2,
         "correct_answers": 1,
         "score_percentage": 50.0,
-        "questions": [ /* ver seção 3.3 */ ]
+        "questions": []
     }
 }
 ```
@@ -266,7 +268,7 @@ Base: `/api/exam/`
     "student_id": "1",
     "total_submissions": 3,
     "average_score": 85.5,
-    "submissions": [ /* lista resumida por submissão */ ]
+    "submissions": []
 }
 ```
 
@@ -319,10 +321,35 @@ Cada item em `questions` possui a seguinte estrutura:
 - Todas as `answers[*].question_id` devem existir e pertencer ao exame informado.
 - Não podem existir questões duplicadas em `answers`.
 - `selected_option` deve estar entre 1 e 5.
-- Um estudante pode ter apenas uma submissão por exame (restrição de unicidade em banco).
+- Um estudante pode ter apenas uma submissão por exame (unicidade banco: `(student, exam)`).
+- Uma mesma questão não pode ser repetida dentro de um exame (unicidade banco: `(exam, question)` + validação no admin).
 
-## 5. Observações de Operação
 
-- Em produção, recomenda-se Redis para broker/result backend e PostgreSQL para banco.
-- Para alto volume, configure múltiplos workers Celery e aumente `--concurrency`.
-- Em testes, o projeto está configurado para executar Celery em modo eager (processamento imediato e sem broker externo).
+## 5. Tipos de Questão e Alternativas (SINGLE vs MULTIPLE)
+
+Cada `Question` possui campo `selection_type`:
+
+- `SINGLE`: permite apenas uma alternativa correta. Salvar uma alternativa marcada como correta faz o sistema desmarcar automaticamente outras já marcadas como corretas anteriormente e o admin bloqueia múltiplas corretas.
+- `MULTIPLE`: permite múltiplas alternativas corretas simultaneamente.
+
+Regras adicionais:
+- Alternativas têm `option` inteiro (1..5) mapeado para letras A..E.
+- Validações no admin e no model asseguram consistência sem necessidade de limpeza manual pelos usuários.
+
+## 7. Unicidade e Integridade em Exames
+
+- `(exam, number)` garante ordem única por posição.
+- `(exam, question)` impede repetição da mesma questão dentro de um exame (constraint + validação admin).
+- `(student, exam)` impede múltiplas submissões do mesmo estudante para o mesmo exame.
+
+## 8. Ciclo de Temperatura de Dados (HOT / WARM / COLD)
+
+- HOT: Submissão recém-criada (dados voláteis, alta frequência de leitura imediata).
+- WARM: Após processamento inicial (consultas analíticas leves, agregações simples).
+- COLD: Planejado para arquivamento/relatórios históricos (tarefa periódica futura via Celer)
+
+## 9. Pipeline de CI (GitHub Actions)
+
+Stages principais:
+1. Testes: Sobe serviço Postgres, exporta variáveis de ambiente, executa suíte (pytest) com Celery em modo eager.
+2. Build: Após sucesso dos testes, constrói imagem Docker do backend.

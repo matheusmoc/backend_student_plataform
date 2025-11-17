@@ -243,10 +243,10 @@ Base: `/api/exam/`
 ```json
 {
     "student_id": 1,
-    "exam_id": 10,
+    "exam_id": 1,
     "answers": [
-        {"question_id": 101, "selected_option": 2},
-        {"question_id": 102, "selected_option": 4}
+        {"question_id": 1, "selected_option": 2},
+        {"question_id": 2, "selected_option": 4}
     ]
 }
 ```
